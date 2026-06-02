@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Farming Simulator</title>
+    <link rel="stylesheet" href="style.css">
+    <script async src="https://unpkg.com/es-module-shims@1.6.3/dist/es-moduleshims.js"></script>
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://threejs.org/build/three.module.js"
+        }
+    }
+    </script>
+</head>
+
+<body>
+	
+<!-- START SCREEN -->
+<div id="startScreen" class="menu">
+	<h1>Farming Simulator BETA</h1>
+	<button id="startBtn">Start Game</button>
+	<button id="instructionsBtn">Instructions</button>
+</div>
+
+<!-- INSTRUCTIONS -->
+<div id="instructionsScreen" class="menu hidden">
+	<div class="instructionsBox">
+		<img src="images/farmer.png" alt="Farmer" class="farmerImg">
+		<h2>How to Farm</h2>
+
+		<div class="instructionsText">
+			<p>
+				Howdy, farmer! During the day, keep a sharp eye on your crops and watch where the shadows fall across the field. Consider the shadow of the fences unimportant.
+			</p>
+			<p>
+				When night rolls in, that is your time to farm. Pick your seeds and plant them on the tiles you think will give each flower the best chance to grow.
+			</p>
+			<p>
+				Each level intro will tell you what every flower needs. Flowers take one extra night to grow, and once daylight returns, you can harvest them for flowers and fresh seeds.
+			</p>
+			<p>
+				After harvesting a flower, let that patch of soil rest for one more day before planting there again.
+			</p>
+			<p class="instructionsCallout">
+				Complete the level goals, move on to the next field, and show this farm what you are made of. Are you ready to farm?
+			</p>
+		</div>
+
+		<button id="backBtn">Back</button>
+	</div>
+</div>
+
+<!-- LEVEL INTRO -->
+<div id="levelIntro" class="menu hidden">
+	<div class="dialogBox">
+		<img src="images/farmer.png" alt="Farmer" class="farmerImg">
+
+		<h2>Welcome to Level 1!</h2>
+
+		<p id="introText">
+			Howdy farmer!<br><br>
+			This land has been waiting for someone like you.<br>
+			For your first mission, plant the seeds I gave you until you collect 8 sunflowers.
+			Sunflowers need sun all day long. But be careful! 
+			The merchants are demanding and they want their flowers in 8 days!
+
+			<br><br>
+			You received:
+			<br>
+			Sunflower Seeds x5
+		</p>
+
+		<button id="continueBtn">Start Farming</button>
+	</div>
+</div>
+
+<!-- INVENTORY BUTTON -->
+<button id="inventoryBtn" class="inventoryButton hidden">
+	Inventory
+</button>
+
+<!-- TIME BUTTON -->
+<button id="timeBtn" class="timeButton hidden">
+</button>
+
+<!-- DAY COUNTER -->
+<div id="dayCounter" class="dayCounter hidden">
+	Day 1
+</div>
+
+<!-- HARVEST COUNTER -->
+<div id="harvestTracker" class="harvestTracker hidden">
+	<h3>Harvested</h3>
+	<div id="harvestItems"></div>
+</div>
+
+<!-- INVENTORY WINDOW -->
+<div id="inventoryWindow" class="hidden">
+	<div class="inventoryBox">
+		<h2>Inventory</h2>
+		<div id="inventoryItems"></div>
+		<button id="closeInventory">Close</button>
+	</div>
+</div>
+
+<!-- LEVEL FAILED WINDOW -->
+<div id="levelFailedWindow" class="hidden">
+	<div class="levelFailedBox">
+		<h2>Level Failed</h2>
+		<p>You didn't manage to collect the flowers in 8 days.</p>
+		<button id="restartBtn">Restart</button>
+	</div>
+</div>
+
+<!-- LEVEL COMPLETE WINDOW -->
+<div id="levelCompleteWindow" class="hidden">
+	<div class="levelCompleteBox">
+		<img src="images/farmer.png" alt="Farmer" class="farmerImg">
+		<h2 id="levelCompleteTitle">Congratulations!</h2>
+		<p id="levelCompleteText">
+			You collected enough sunflowers. You are now moving to Level 2, where mushrooms need shadow all day
+			and violets need half a day of sun and half a day of shadow.
+		</p>
+		<button id="nextLevelBtn">Continue</button>
+	</div>
+</div>
+
+<script type="module" src="./js/main.js"></script>
+</body>
+</html>

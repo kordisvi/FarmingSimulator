@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simple Model Viewer</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background: #111;
+    }
+
+    canvas {
+      display: block;
+    }
+
+    #controlsInfo {
+      position: fixed;
+      left: 16px;
+      bottom: 16px;
+      padding: 10px 12px;
+      color: white;
+      background: rgba(0, 0, 0, 0.55);
+      font-family: Arial, sans-serif;
+      font-size: 13px;
+      line-height: 1.4;
+    }
+  </style>
+</head>
+<body>
+  <div id="controlsInfo">
+    Mouse: rotate / zoom / pan<br>
+    WASD: move camera | Q/E: down/up | Shift: faster
+  </div>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://threejs.org/build/three.module.js",
+        "three/addons/": "https://threejs.org/examples/jsm/"
+      }
+    }
+  </script>
+
+
+  <script type="module">
+    import * as THREE from "three";
+    import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+    import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+    import { buildLevelFences } from "./js/fences.js";
+    import { tree0, tree1 } from "./js/trees.js";
+    import { shadowCloud } from "./js/cloud.js";
+    import { createLake } from "./js/lake.js";
+
+    // Scene
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0xbfd8ff);
+
+    // Camera
+    const camera = new THREE.PerspectiveCamera(
+      60,
+      window.innerWidth / window.innerHeight,
+      0.1,
+      1000
+    );
+    camera.position.set(30, 18, 34);
+
+    // Renderer
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.shadowMap.enabled = true;
+    document.body.appendChild(renderer.domElement);
+
+    // Orbit controls: rotate, zoom, and pan with the mouse.
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.target.set(0, 5, 0);
+
+    // Free camera movement:
+    // W/S = forward/back, A/D = left/right, Q/E = down/up, Shift = faster.
+    const pressedKeys = {};
+    const clock = new THREE.Clock();
+    const moveDirection = new THREE.Vector3();
+    const sideDirection = new THREE.Vector3();
+
+    window.addEventListener("keydown", (event) => {
+      pressedKeys[event.code] = true;
+    });
+
+    window.addEventListener("keyup", (event) => {
+      pressedKeys[event.code] = false;
+    });
+
+    function moveCamera(deltaTime) {
+      const speed = pressedKeys.ShiftLeft || pressedKeys.ShiftRight ? 18 : 8;
+      const distance = speed * deltaTime;
+
+      camera.getWorldDirection(moveDirection);
+      moveDirection.y = 0;
+      moveDirection.normalize();
+
+      sideDirection.crossVectors(camera.up, moveDirection).normalize();
+
+      if (pressedKeys.KeyW) {
+        camera.position.addScaledVector(moveDirection, distance);
+        controls.target.addScaledVector(moveDirection, distance);
+      }
+
+      if (pressedKeys.KeyS) {
+        camera.position.addScaledVector(moveDirection, -distance);
+        controls.target.addScaledVector(moveDirection, -distance);
+      }
+
+      if (pressedKeys.KeyA) {
+        camera.position.addScaledVector(sideDirection, distance);
+        controls.target.addScaledVector(sideDirection, distance);
+      }
+
+      if (pressedKeys.KeyD) {
+        camera.position.addScaledVector(sideDirection, -distance);
+        controls.target.addScaledVector(sideDirection, -distance);
+      }
+
+      if (pressedKeys.KeyE) {
+        camera.position.y += distance;
+        controls.target.y += distance;
+      }
+
+      if (pressedKeys.KeyQ) {
+        camera.position.y -= distance;
+        controls.target.y -= distance;
+      }
+    }
+
+    // Lights
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+    scene.add(ambientLight);
+
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+    directionalLight.position.set(5, 8, 5);
+    directionalLight.castShadow = true;
+    scene.add(directionalLight);
+
+    // Ground
+    const groundGeometry = new THREE.PlaneGeometry(70, 70);
+    const groundMaterial = new THREE.MeshStandardMaterial({ color: 0x6aa84f });
+    const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+    ground.rotation.x = -Math.PI / 2;
+    ground.receiveShadow = true;
+    scene.add(ground);
+
+    // Grid helper
+    const grid = new THREE.GridHelper(70, 70);
+    scene.add(grid);
+
+    const loader = new GLTFLoader();
+
+    // Scales any object to a target size and places it on the ground.
+    function placeObjectOnGround(object, x, z, targetSize) {
+      const box = new THREE.Box3().setFromObject(object);
+      const size = box.getSize(new THREE.Vector3());
+      const maxSize = Math.max(size.x, size.y, size.z);
+
+      if (maxSize > 0) {
+        const scale = targetSize / maxSize;
+        object.scale.multiplyScalar(scale);
+      }
+
+      const scaledBox = new THREE.Box3().setFromObject(object);
+      const center = scaledBox.getCenter(new THREE.Vector3());
+      const minY = scaledBox.min.y;
+
+      object.position.x += x - center.x;
+      object.position.y += -minY;
+      object.position.z += z - center.z;
+
+      scene.add(object);
+    }
+
+    // Loads a GLB model from the models folder.
+    function loadModel(path, x, z, targetSize) {
+      loader.load(path, (gltf) => {
+        const model = gltf.scene;
+
+        model.traverse((child) => {
+          if (child.isMesh) {
+            child.castShadow = true;
+            child.receiveShadow = true;
+          }
+        });
+
+        placeObjectOnGround(model, x, z, targetSize);
+      });
+    }
+
+    // Add your models here.
+    function addModels() {
+      // Fence piece from js/fences.js.
+      const fenceHolder = new THREE.Group();
+      buildLevelFences(fenceHolder, {
+        fences: [
+          { startX: 0, startZ: 0, steps: 1, rotate: 1 }
+        ]
+      });
+      placeObjectOnGround(fenceHolder, -22, 22, 5);
+
+      // Two tree types from js/trees.js.
+      const coneTree = tree0.clone(true);
+      placeObjectOnGround(coneTree, -8, 24, 8);
+
+      const fluffyTree = tree1.clone(true);
+      placeObjectOnGround(fluffyTree, 8, 24, 8);
+
+      // Cloud from js/cloud.js.
+      const cloud = shadowCloud.clone(true);
+      placeObjectOnGround(cloud, 22, 22, 4);
+      cloud.position.y += 14;
+
+      // Lake from js/lake.js.
+      const lake = createLake(0, 0);
+      placeObjectOnGround(lake, 0, -24, 14);
+    }
+
+    addModels();
+
+    // Resize
+    window.addEventListener("resize", () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    // Animation loop
+    function animate() {
+      requestAnimationFrame(animate);
+      const deltaTime = clock.getDelta();
+      moveCamera(deltaTime);
+      controls.update();
+      renderer.render(scene, camera);
+    }
+
+    animate();
+  </script>
+</body>
+</html>
